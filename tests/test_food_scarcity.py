@@ -3,6 +3,7 @@ from behavioral_lab.domain.models import Action, ActionType
 from behavioral_lab.runtime.engine import SimulationEngine
 from behavioral_lab.scenarios.food_scarcity import FoodScarcityScenario
 from behavioral_lab.storage.events import EventStore
+from behavioral_lab.runtime.replay import comparable_events, replay_jsonl
 
 
 def build(seed: int = 101):
@@ -72,3 +73,18 @@ def test_full_simulation_discovers_and_consumes_food():
     assert "FOOD_DISCOVERED" in event_types
     assert "FOOD_TAKEN" in event_types
     assert "FOOD_EATEN" in event_types
+
+
+def test_jsonl_replay_matches_state_changing_events_and_final_state(tmp_path):
+    path = tmp_path / "events.jsonl"
+    store = EventStore(path)
+    scenario = FoodScarcityScenario(seed=101, event_store=store)
+    agents = {agent_id: FakeAgent(agent_id) for agent_id in scenario.world.agents}
+    SimulationEngine(scenario, agents).run()
+
+    replay_store, replay_snapshot = replay_jsonl(path)
+    original_snapshot = next(
+        event.payload for event in reversed(store.events) if event.event_type == "ROUND_ENDED"
+    )
+    assert replay_snapshot == original_snapshot
+    assert comparable_events(store.events) == comparable_events(replay_store.events)

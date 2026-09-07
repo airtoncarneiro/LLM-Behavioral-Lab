@@ -12,6 +12,7 @@ from behavioral_lab.domain.models import (
     WorldState,
 )
 from behavioral_lab.storage.events import EventStore
+from behavioral_lab.scenarios.invariants import validate_invariants
 
 
 LOCATIONS = ("CENTRAL_ROOM", "KITCHEN", "STORAGE", "ROOM_A", "ROOM_B")
@@ -154,6 +155,7 @@ class FoodScarcityScenario:
                     },
                     agent_id,
                 )
+        validate_invariants(self.world)
 
     def end_round(self) -> None:
         for agent in self.world.agents.values():
