@@ -27,10 +27,28 @@ DEFAULT_DISTRIBUTION = {
 
 
 class FoodScarcityScenario:
-    def __init__(self, seed: int, event_store: EventStore) -> None:
+    scenario_name = "food_scarcity"
+
+    def __init__(
+        self,
+        seed: int,
+        event_store: EventStore,
+        *,
+        initial_positions: dict[str, str] | None = None,
+        distribution: dict[str, int] | None = None,
+    ) -> None:
         self.seed = seed
         self._rng = random.Random(seed)
         self.events = event_store
+        selected_distribution = dict(
+            DEFAULT_DISTRIBUTION if distribution is None else distribution
+        )
+        if set(selected_distribution) != set(LOCATIONS) or any(
+            isinstance(food, bool) or not isinstance(food, int) or food < 0
+            for food in selected_distribution.values()
+        ):
+            raise ValueError("distribution must contain non-negative food for every location")
+        self.total_food = sum(selected_distribution.values())
         self._public_messages: list[Message] = []
         self._private_messages: dict[str, list[Message]] = {f"Agent_{letter}": [] for letter in "ABCDE"}
         self.world = WorldState(
@@ -41,13 +59,21 @@ class FoodScarcityScenario:
             },
             locations={
                 name: LocationState(name=name, food=food)
-                for name, food in DEFAULT_DISTRIBUTION.items()
+                for name, food in selected_distribution.items()
             },
         )
+        if initial_positions is not None:
+            unknown_agents = set(initial_positions) - set(self.world.agents)
+            unknown_locations = set(initial_positions.values()) - set(self.world.locations)
+            if unknown_agents or unknown_locations:
+                raise ValueError("initial_positions contains an unknown agent or location")
+            for agent_id, location in initial_positions.items():
+                self.world.agents[agent_id].location = location
         self.events.append(0, "SIMULATION_INITIALIZED", self.snapshot())
 
     def snapshot(self) -> dict:
         return {
+            "scenario": self.scenario_name,
             "seed": self.seed,
             "round": self.world.round_number,
             "agents": {
@@ -171,7 +197,7 @@ class FoodScarcityScenario:
                 {"to": action.private_message_to, "message": action.private_message},
                 agent_id,
             )
-        validate_invariants(self.world)
+        validate_invariants(self.world, total_food=self.total_food)
 
     def validate_action(self, agent_id: str, action: Action) -> None:
         if not isinstance(action, Action):

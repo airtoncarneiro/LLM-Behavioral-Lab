@@ -15,7 +15,7 @@ this file before starting work and update only the tasks it actually completes.
 
 - Repository: `airtoncarneiro/LLM-Behavioral-Lab`
 - Current development branch: `feat/milestone-2-llm-agent`
-- Latest local validation: `26 passed`
+- Latest local validation: `31 passed`
 - Standard CI must not call OpenRouter or require `OPENROUTER_API_KEY`.
 
 ## Milestone 1 — Food Scarcity foundation
@@ -97,21 +97,21 @@ this file before starting work and update only the tasks it actually completes.
 
 - [x] Run an optional real OpenRouter smoke test only when the environment
   provides `OPENROUTER_API_KEY`; never run it in standard CI.
-- [ ] Open the Milestone 2 pull request.
-- [ ] Confirm the GitHub Actions run for the Milestone 2 pull request passes.
-- [ ] Merge the Milestone 2 pull request after review.
+- [x] Open the Milestone 2 pull request.
+- [x] Confirm the GitHub Actions run for the Milestone 2 pull request passes.
+- [x] Merge the Milestone 2 pull request after review.
 
 ## Experimental platform — after Milestone 2
 
-- [ ] Build an `ExperimentRunner` for multiple seeds.
-- [ ] Support repeated runs with controlled agent-position assignments.
-- [ ] Add result summaries per agent and per run.
-- [ ] Add behavioral metrics for survival, hunger, consumption, cooperation,
+- [x] Build an `ExperimentRunner` for multiple seeds.
+- [x] Support repeated runs with controlled agent-position assignments.
+- [x] Add result summaries per agent and per run.
+- [x] Add behavioral metrics for survival, hunger, consumption, cooperation,
   disclosure, and resource distribution.
-- [ ] Add comparison reports across seeds, providers, and models.
-- [ ] Support five LLM agents as a separate experiment configuration.
-- [ ] Add behavioral evaluators.
-- [ ] Add a second scenario without changing the simulation core.
+- [x] Add comparison reports across seeds, providers, and models.
+- [x] Support five LLM agents as a separate experiment configuration.
+- [x] Add behavioral evaluators.
+- [x] Add a second scenario without changing the simulation core.
 
 ## Agent handoff checklist
 
