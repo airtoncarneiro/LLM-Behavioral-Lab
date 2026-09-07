@@ -4,14 +4,13 @@ import re
 
 from behavioral_lab.agents.protocol import Agent
 from behavioral_lab.domain.models import Action, ActionType
-from behavioral_lab.scenarios.food_scarcity import FoodScarcityScenario
 from behavioral_lab.scenarios.invariants import validate_invariants
 
 
 class SimulationEngine:
     def __init__(
         self,
-        scenario: FoodScarcityScenario,
+        scenario,
         agents: dict[str, Agent],
         max_rounds: int = 20,
         llm_failure_fallback: Action | None = None,
@@ -67,7 +66,10 @@ class SimulationEngine:
                     )
 
             self.scenario.end_round()
-            validate_invariants(self.scenario.world)
+            validate_invariants(
+                self.scenario.world,
+                total_food=getattr(self.scenario, "total_food", 20),
+            )
             if not self.scenario.world.alive_agents:
                 break
 

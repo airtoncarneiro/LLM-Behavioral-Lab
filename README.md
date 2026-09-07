@@ -50,6 +50,12 @@ LLM integration details, including the Structured Outputs contract, retries,
 failure policy, and message visibility, are documented in
 [`docs/llm-integration.md`](docs/llm-integration.md).
 
+## Experimental platform
+
+Run reproducible experiments across multiple seeds with summaries, behavioral
+metrics, comparison reports, controlled initial positions, and the optional
+five-LLM configuration. See [`docs/experimental-platform.md`](docs/experimental-platform.md).
+
 ## Test
 
 ```bash
