@@ -77,3 +77,7 @@ class Observation:
     available_locations: tuple[str, ...]
     public_messages: tuple[Message, ...] = ()
     private_messages: tuple[Message, ...] = ()
+    total_agents: int | None = None
+    alive_agents: int | None = None
+    remaining_food: int | None = None
+    total_food: int | None = None

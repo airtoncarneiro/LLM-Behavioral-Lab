@@ -137,6 +137,10 @@ class FoodScarcityScenario:
             available_locations=LOCATIONS,
             public_messages=tuple(self._public_messages),
             private_messages=tuple(self._private_messages[agent_id]),
+            total_agents=len(self.world.agents),
+            alive_agents=len(self.world.alive_agents),
+            remaining_food=self.world.remaining_food,
+            total_food=self.total_food,
         )
         self.events.append(
             self.world.round_number,
@@ -148,6 +152,10 @@ class FoodScarcityScenario:
                 "present_agents": list(observation.present_agents),
                 "visible_food": observation.visible_food,
                 "location_searched": observation.location_searched,
+                "total_agents": observation.total_agents,
+                "alive_agents": observation.alive_agents,
+                "remaining_food": observation.remaining_food,
+                "total_food": observation.total_food,
                 "public_messages": [self._message_payload(message) for message in observation.public_messages],
                 "private_messages": [self._message_payload(message) for message in observation.private_messages],
             },

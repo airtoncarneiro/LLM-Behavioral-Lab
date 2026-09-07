@@ -148,6 +148,10 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Make replay restore the recorded scenario type, food distribution, and
   controlled initial positions; cover `common_pool` and custom configurations.
 - [x] Bound accumulated public/private message history and LLM prompt memory
+- [x] Keep valid LLM actions when an optional private-message recipient is invalid
+- [x] Include configured/current agent and food counts in LLM observations
+- [x] Report LLM decisions, failures, and fallbacks in experiment metrics
+- [x] Add UTC timestamps to event logs and LLM decision durations
   without losing the configured research context; add a long-run test.
 
 ## Agent handoff checklist

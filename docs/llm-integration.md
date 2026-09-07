@@ -57,6 +57,11 @@ action emits `LLM_DECISION_FAILED` and executes the configurable `WAIT`
 fallback, allowing the remaining agents and rounds to continue. Error payloads
 are bounded and redact credential-like values.
 
+The system prompt does not hard-code the number of agents or the total food.
+Those values, together with the current number of living agents and remaining
+food, are included in each observation so the prompt follows the configured
+scenario.
+
 Public messages are included in observations after they are emitted. Private
 messages are stored only for the named, alive, co-located recipient. The
 scenario keeps a bounded context window for both public and private messages
@@ -72,13 +77,31 @@ provider errors, timeouts, and responses that fail local validation must be
 handled as LLM decision failures. They must not silently change the experiment
 protocol.
 
+The example configuration uses canonical, non-`:free` model slugs selected from
+the current OpenRouter catalog. Availability, pricing, and Structured Outputs
+support can change; validate the chosen models before running a paid experiment.
+For example, the DeepSeek V4 Flash page currently states that its endpoint does
+not support `response_format`, so it is not suitable for the strict JSON Schema
+contract used by this application.
+
 The runtime policy for such failures must be explicit and configurable. The
 default safe fallback is `WAIT`, and the event log must record an
 `LLM_DECISION_FAILED` event containing a safe error summary without exposing
 API keys or other sensitive data.
 
+Every JSONL event includes a UTC `timestamp` in ISO 8601 format. LLM response
+and failure events also include `duration_ms`, allowing request latency and
+provider failures to be correlated with the simulation timeline. Older logs
+without timestamps remain readable for replay.
+
 Response Healing may be evaluated for non-streaming requests, but it does not
 replace schema validation, domain validation, or the failure policy.
+
+An optional private message is checked against the observation's
+`present_agents`, which represents alive agents in the same location. If the
+model invents an unavailable recipient, the message is discarded while the
+main action is preserved. Invalid action arguments still follow the normal
+LLM failure and `WAIT` fallback policy.
 
 ## Local validation and endpoint support
 
