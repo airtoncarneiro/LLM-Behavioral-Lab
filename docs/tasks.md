@@ -154,6 +154,40 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Add UTC timestamps to event logs and LLM decision durations
   without losing the configured research context; add a long-run test.
 
+### Communication and reliability improvements
+
+Detailed specifications and acceptance criteria for these tasks are in
+[`docs/improvements.md`](improvements.md).
+
+- [ ] Implement bounded retries with exponential backoff for transient
+  provider failures, preserving the attempt number in the event log.
+- [ ] Add per-agent request timeouts and an explicit circuit breaker or model
+  fallback after repeated LLM failures.
+- [ ] Validate the complete LLM response, including JSON shape, action,
+  quantity, location, target agent, and message recipient before execution.
+- [ ] Keep an explicit distinction between an agent's declared intention and
+  the action actually executed by the environment.
+- [ ] Record the real result of every action and return that result in the
+  next observation so agents can correct stale assumptions.
+- [ ] Add shared, bounded coordination state for discovered food, reservations,
+  collected food, and each agent's outstanding needs.
+- [ ] Add confirmation and expiration semantics for inter-agent agreements and
+  private/public messages.
+- [ ] Include active agreements and their confirmed status in subsequent LLM
+  prompts.
+- [ ] Add deterministic emergency behavior that prioritizes eating or seeking
+  food when hunger is near the death threshold and the LLM fails.
+- [ ] Prevent reservations for unavailable food and reconcile reservations with
+  the environment after every collection or consumption action.
+- [ ] Adjust prompts and provider parameters per model, including temperature,
+  max tokens, and response-format compatibility.
+- [ ] Add model-specific integration tests for HTTP 400 responses, malformed
+  content, invalid actions, and long response latency.
+- [ ] Add cooperation metrics for agreements created, confirmed, fulfilled,
+  broken, and expired, plus reserved versus actually collected food.
+- [ ] Add reports correlating communication, invalid actions, fallback use,
+  latency, and survival outcomes per model.
+
 ## Agent handoff checklist
 
 - [ ] Read this file before coding.
