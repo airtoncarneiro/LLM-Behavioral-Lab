@@ -3,6 +3,7 @@ from __future__ import annotations
 from behavioral_lab.agents.llm import LLMAgent
 from behavioral_lab.agents.fake import FakeAgent
 from behavioral_lab.scenarios.food_scarcity import FoodScarcityScenario
+from behavioral_lab.scenarios.invariants import validate_invariants
 
 
 class SimulationEngine:
@@ -59,6 +60,7 @@ class SimulationEngine:
                     )
 
             self.scenario.end_round()
+            validate_invariants(self.scenario.world)
             if not self.scenario.world.alive_agents:
                 break
 

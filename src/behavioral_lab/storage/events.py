@@ -27,6 +27,28 @@ class EventStore:
     def events(self) -> tuple[Event, ...]:
         return tuple(self._events)
 
+    @classmethod
+    def from_jsonl(cls, path: Path) -> "EventStore":
+        """Load an event log without truncating or rewriting the source file."""
+        store = cls()
+        with path.open(encoding="utf-8") as fh:
+            for line_number, line in enumerate(fh, 1):
+                if not line.strip():
+                    continue
+                try:
+                    raw = json.loads(line)
+                    event = Event(
+                        sequence=int(raw["sequence"]),
+                        round_number=int(raw["round_number"]),
+                        agent_id=raw.get("agent_id"),
+                        event_type=str(raw["event_type"]),
+                        payload=raw["payload"],
+                    )
+                except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+                    raise ValueError(f"Invalid event at JSONL line {line_number}") from exc
+                store._events.append(event)
+        return store
+
     def append(
         self,
         round_number: int,

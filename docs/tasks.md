@@ -37,10 +37,10 @@ this file before starting work and update only the tasks it actually completes.
 
 ### Still pending from the foundation
 
-- [ ] Implement a JSONL reader.
-- [ ] Implement replay that reapplies recorded actions without calling an LLM.
-- [ ] Verify replayed events and final state against the original run.
-- [ ] Add invariant checks for total food, inventory, valid locations, and
+- [x] Implement a JSONL reader.
+- [x] Implement replay that reapplies recorded actions without calling an LLM.
+- [x] Verify replayed events and final state against the original run.
+- [x] Add invariant checks for total food, inventory, valid locations, and
   living/dead agents.
 
 ## Milestone 2 — First LLM agent
