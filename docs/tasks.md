@@ -14,8 +14,11 @@ this file before starting work and update only the tasks it actually completes.
 ## Current baseline
 
 - Repository: `airtoncarneiro/LLM-Behavioral-Lab`
-- Current development branch: `feat/milestone-2-llm-agent`
-- Latest local validation: `31 passed`
+- Current development branch: `main`
+- Latest local validation: `40 passed` (`pytest -q`); compile and fake-only CLI smoke also pass.
+- Live LLM smoke: one round passed with `Agent_A` on OpenRouter model
+  `deepseek/deepseek-v4-flash-0731`; four other agents remained fake.
+- Readiness status: single-agent LLM path is schema-compatible; general replay and other hardening still require work.
 - Standard CI must not call OpenRouter or require `OPENROUTER_API_KEY`.
 
 ## Milestone 1 — Food Scarcity foundation
@@ -35,13 +38,13 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Implement deterministic `FakeAgent` behavior.
 - [x] Add tests for core state transitions and deterministic simulation.
 
-### Still pending from the foundation
+### Foundation follow-up
 
 - [x] Implement a JSONL reader.
 - [x] Implement replay that reapplies recorded actions without calling an LLM.
 - [x] Verify replayed events and final state against the original run.
-- [x] Add invariant checks for total food, inventory, valid locations, and
-  living/dead agents.
+- [ ] Strengthen invariant checks to enforce exact food conservation, in
+  addition to inventory, valid locations, and living/dead agent checks.
 
 ## Milestone 2 — First LLM agent
 
@@ -58,7 +61,7 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Add tests for valid JSON, fenced JSON, invalid JSON, composition, and
   provider metadata logging.
 
-### Pending implementation — priority P0
+### Priority P0 implementation
 
 - [x] Handle provider failures and invalid LLM responses without aborting the
   entire simulation.
@@ -67,15 +70,24 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Define and implement the policy for invalid LLM actions, including a
   configurable fallback such as `WAIT`.
 - [x] Add strict per-action argument validation before execution.
-- [x] Request and validate structured output at the provider boundary.
+- [x] Reconcile the Structured Outputs argument shape with the domain's
+  action-specific validation; schema-conforming nullable arguments must not be
+  rejected for actions that do not use them.
+- [x] Request and validate the complete structured action response at the
+  provider boundary, including an end-to-end path through `LLMAgent` and the
+  simulation engine.
 - [x] Use OpenRouter Structured Outputs with `response_format.type=json_schema`,
   `strict=true`, required fields, `additionalProperties=false`, descriptive
-  properties, and provider routing with `require_parameters=true`.
-- [x] Document the Structured Outputs contract, endpoint-specific support,
-  local validation, failure policy, and safe fallback.
+  properties, and provider routing with `require_parameters=true`, then verify
+  that every supported action can execute from a schema-conforming response.
+- [x] Update the Structured Outputs documentation after the schema/domain
+  contract is fixed, including endpoint support, local validation, failure
+  policy, and safe fallback.
 - [x] Add mock HTTP tests for OpenRouter request and response handling.
+- [x] Add integration tests that pass schema-conforming `move`, `take`,
+  `store`, `give`, `eat`, `search`, and `wait` responses through the engine.
 
-### Pending implementation — priority P1
+### Priority P1 implementation — completed
 
 - [x] Deliver public messages to agents in later observations.
 - [x] Deliver private messages only to the intended recipient.
@@ -95,8 +107,10 @@ this file before starting work and update only the tasks it actually completes.
 
 ### External validation and delivery
 
-- [x] Run an optional real OpenRouter smoke test only when the environment
-  provides `OPENROUTER_API_KEY`; never run it in standard CI.
+- [x] Run an explicit real OpenRouter smoke test with a model/provider route
+  that supports Structured Outputs; verify that a real LLM action executes and
+  record the model/route (`deepseek/deepseek-v4-flash-0731`). Never run it in
+  standard CI.
 - [x] Open the Milestone 2 pull request.
 - [x] Confirm the GitHub Actions run for the Milestone 2 pull request passes.
 - [x] Merge the Milestone 2 pull request after review.
@@ -112,6 +126,13 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Support five LLM agents as a separate experiment configuration.
 - [x] Add behavioral evaluators.
 - [x] Add a second scenario without changing the simulation core.
+
+### Readiness hardening
+
+- [ ] Make replay restore the recorded scenario type, food distribution, and
+  controlled initial positions; cover `common_pool` and custom configurations.
+- [ ] Bound accumulated public/private message history and LLM prompt memory
+  without losing the configured research context; add a long-run test.
 
 ## Agent handoff checklist
 

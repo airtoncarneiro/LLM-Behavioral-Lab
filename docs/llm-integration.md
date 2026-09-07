@@ -30,6 +30,24 @@ The current schema is sent by `OpenRouterProvider` with the preset as `model`,
 argument object has the explicitly known `location`, `target`, and `quantity`
 properties and rejects other keys.
 
+Because strict structured output requires the three argument properties to be
+present, unused action arguments are returned as `null` on the wire. The
+`LLMAgent` removes those `null` properties before creating the domain `Action`,
+so `wait` and `search` receive `{}`, while `move`, `take`, `store`, `give`, and
+`eat` receive only the arguments they use. Non-null arguments for the wrong
+action are ignored after their types are validated, so models that fill
+irrelevant nullable fields do not cause a valid action to fail. Unknown
+argument fields and invalid types remain rejected.
+
+Optional messages are normalized independently of the action: a blank public
+message is discarded, and an incomplete or blank private-message pair is
+discarded. A complete pair is still subject to recipient, co-location, and
+non-empty-content domain validation.
+
+The OpenRouter adapter validates the complete response shape before returning
+it. Integration tests then exercise every supported action through the agent
+and simulation engine with a schema-conforming response.
+
 The provider adapter applies a finite timeout and a finite retry count. It
 retries only timeouts, transport failures, HTTP 408, HTTP 429, and 5xx
 responses. The response envelope must contain a textual

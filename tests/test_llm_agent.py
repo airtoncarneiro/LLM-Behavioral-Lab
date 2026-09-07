@@ -49,6 +49,18 @@ def test_llm_agent_parses_private_message_fields():
     assert action.private_message == "keep watch"
 
 
+def test_llm_agent_discards_incomplete_optional_messages():
+    provider = FakeLLMProvider(
+        ['{"action":"wait","public_message":" ","private_message_to":"Agent_B"}']
+    )
+
+    action = LLMAgent("Agent_A", provider).decide(observation())
+
+    assert action.public_message is None
+    assert action.private_message_to is None
+    assert action.private_message is None
+
+
 def test_llm_agent_rejects_invalid_response():
     provider = FakeLLMProvider(["not json"])
     with pytest.raises(ValueError, match="valid action JSON"):
