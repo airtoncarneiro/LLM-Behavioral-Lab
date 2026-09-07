@@ -144,8 +144,7 @@ class OpenRouterProvider:
             structured_content = json.loads(content)
         except json.JSONDecodeError as exc:
             raise RuntimeError("OpenRouter response content must be valid JSON") from exc
-        if not isinstance(structured_content, dict):
-            raise RuntimeError("OpenRouter response content must be a JSON object")
+        self._validate_structured_content(structured_content)
 
         return ProviderResponse(
             content=content,
@@ -153,3 +152,47 @@ class OpenRouterProvider:
             provider="openrouter",
             preset=self.preset,
         )
+
+    @staticmethod
+    def _validate_structured_content(content: object) -> None:
+        if not isinstance(content, dict):
+            raise RuntimeError("OpenRouter response content must be a JSON object")
+
+        required_fields = {
+            "action",
+            "arguments",
+            "public_message",
+            "private_message_to",
+            "private_message",
+        }
+        if set(content) != required_fields:
+            raise RuntimeError("OpenRouter response does not match the action schema")
+        if not isinstance(content["action"], str) or content["action"] not in {
+            "move",
+            "search",
+            "take",
+            "store",
+            "give",
+            "eat",
+            "wait",
+        }:
+            raise RuntimeError("OpenRouter response contains an invalid action")
+
+        arguments = content["arguments"]
+        if not isinstance(arguments, dict):
+            raise RuntimeError("OpenRouter action arguments must be an object")
+        argument_fields = {"location", "target", "quantity"}
+        if set(arguments) != argument_fields:
+            raise RuntimeError("OpenRouter response arguments do not match the action schema")
+        if arguments["location"] is not None and not isinstance(arguments["location"], str):
+            raise RuntimeError("OpenRouter location argument must be a string or null")
+        if arguments["target"] is not None and not isinstance(arguments["target"], str):
+            raise RuntimeError("OpenRouter target argument must be a string or null")
+        if arguments["quantity"] is not None and (
+            isinstance(arguments["quantity"], bool)
+            or not isinstance(arguments["quantity"], int)
+        ):
+            raise RuntimeError("OpenRouter quantity argument must be an integer or null")
+        for field in ("public_message", "private_message_to", "private_message"):
+            if content[field] is not None and not isinstance(content[field], str):
+                raise RuntimeError(f"OpenRouter {field} must be a string or null")

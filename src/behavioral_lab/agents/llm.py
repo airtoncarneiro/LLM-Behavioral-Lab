@@ -109,17 +109,48 @@ class LLMAgent:
             raise ValueError("LLM response must contain a valid action JSON object") from exc
         if not isinstance(arguments, dict):
             raise ValueError("LLM action arguments must be an object")
+        allowed_argument_fields = {"location", "target", "quantity"}
+        unknown_argument_fields = set(arguments) - allowed_argument_fields
+        if unknown_argument_fields:
+            raise ValueError("LLM action arguments contain unknown fields")
+        action_argument_fields = {
+            ActionType.MOVE: {"location"},
+            ActionType.SEARCH: set(),
+            ActionType.TAKE: {"quantity"},
+            ActionType.STORE: {"quantity"},
+            ActionType.GIVE: {"target", "quantity"},
+            ActionType.EAT: {"quantity"},
+            ActionType.WAIT: set(),
+        }[action_type]
+        # Structured Outputs requires all argument properties to be present;
+        # the domain contract requires only the fields used by the action.
+        # Ignore well-typed but irrelevant fields because some models fill
+        # nullable fields instead of returning null for every unused field.
+        arguments = {
+            name: value
+            for name, value in arguments.items()
+            if name in action_argument_fields and value is not None
+        }
         public_message = data.get("public_message")
         if public_message is not None and not isinstance(public_message, str):
             raise ValueError("public_message must be a string")
+        if public_message is not None and not public_message.strip():
+            public_message = None
         private_message_to = data.get("private_message_to")
         private_message = data.get("private_message")
         if private_message_to is not None and not isinstance(private_message_to, str):
             raise ValueError("private_message_to must be a string")
         if private_message is not None and not isinstance(private_message, str):
             raise ValueError("private_message must be a string")
-        if (private_message_to is None) != (private_message is None):
-            raise ValueError("private_message_to and private_message must be provided together")
+        if (
+            not private_message_to
+            or not private_message
+            or not private_message.strip()
+        ):
+            # A partial or blank optional message must not invalidate the
+            # action itself; only a complete pair is sent to the domain.
+            private_message_to = None
+            private_message = None
         return Action(
             action_type,
             arguments,

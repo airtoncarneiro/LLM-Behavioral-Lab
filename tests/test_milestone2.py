@@ -30,6 +30,20 @@ class FakeHTTPResponse:
         return self._body
 
 
+def structured_action_response(action="wait", arguments=None):
+    full_arguments = {"location": None, "target": None, "quantity": None}
+    full_arguments.update(arguments or {})
+    return json.dumps(
+        {
+            "action": action,
+            "arguments": full_arguments,
+            "public_message": None,
+            "private_message_to": None,
+            "private_message": None,
+        }
+    )
+
+
 def scenario_with_llm(responses):
     store = EventStore()
     scenario = FoodScarcityScenario(seed=101, event_store=store)
@@ -46,7 +60,12 @@ def test_provider_requests_strict_structured_outputs_and_validates_response(monk
 
     def fake_urlopen(request, timeout):
         requests.append((request, timeout))
-        return FakeHTTPResponse({"model": "effective-model", "choices": [{"message": {"content": '{"action":"wait"}'}}]})
+        return FakeHTTPResponse(
+            {
+                "model": "effective-model",
+                "choices": [{"message": {"content": structured_action_response()}}],
+            }
+        )
 
     monkeypatch.setattr(openrouter, "urlopen", fake_urlopen)
     response = OpenRouterProvider(api_key="secret", timeout=1.5, max_retries=0).complete([])
@@ -67,7 +86,9 @@ def test_provider_retries_transient_http_failure(monkeypatch):
         attempts.append(1)
         if len(attempts) == 1:
             raise HTTPError(request.full_url, 503, "busy", {}, BytesIO())
-        return FakeHTTPResponse({"choices": [{"message": {"content": '{"action":"wait"}'}}]})
+        return FakeHTTPResponse(
+            {"choices": [{"message": {"content": structured_action_response()}}]}
+        )
 
     monkeypatch.setattr(openrouter, "urlopen", fake_urlopen)
     response = OpenRouterProvider(api_key="secret", max_retries=1, retry_backoff=0).complete([])
@@ -104,6 +125,92 @@ def test_provider_rejects_non_json_structured_content(monkeypatch):
     )
     with pytest.raises(RuntimeError, match="valid JSON"):
         OpenRouterProvider(api_key="secret", max_retries=0).complete([])
+
+
+def test_schema_conforming_openrouter_response_reaches_the_engine(monkeypatch):
+    monkeypatch.setattr(
+        openrouter,
+        "urlopen",
+        lambda request, timeout: FakeHTTPResponse(
+            {
+                "model": "effective-model",
+                "choices": [{"message": {"content": structured_action_response()}}],
+            }
+        ),
+    )
+    store = EventStore()
+    scenario = FoodScarcityScenario(seed=101, event_store=store)
+    agents = {
+        agent_id: LLMAgent(
+            agent_id,
+            OpenRouterProvider(api_key="secret", max_retries=0),
+        )
+        if agent_id == "Agent_A"
+        else FakeAgent(agent_id)
+        for agent_id in scenario.world.agents
+    }
+
+    SimulationEngine(scenario, agents, max_rounds=1).run()
+
+    assert not [event for event in store.events if event.event_type == "LLM_DECISION_FAILED"]
+    metadata = [event for event in store.events if event.event_type == "LLM_RESPONSE_RECEIVED"]
+    assert metadata[0].payload["model"] == "effective-model"
+
+
+@pytest.mark.parametrize(
+    ("action", "arguments", "inventory", "searched", "initial_positions"),
+    [
+        ("move", {"location": "KITCHEN"}, 0, False, {}),
+        (
+            "search",
+            {"location": "CENTRAL_ROOM", "target": "Agent_A", "quantity": 1},
+            0,
+            False,
+            {"Agent_A": "KITCHEN"},
+        ),
+        ("take", {"quantity": 1}, 0, True, {"Agent_A": "KITCHEN"}),
+        ("store", {"quantity": 1}, 1, False, {"Agent_A": "KITCHEN"}),
+        (
+            "give",
+            {"target": "Agent_B", "quantity": 1},
+            1,
+            False,
+            {"Agent_A": "KITCHEN", "Agent_B": "KITCHEN"},
+        ),
+        ("eat", {"quantity": 1}, 1, False, {"Agent_A": "KITCHEN"}),
+        ("wait", {}, 0, False, {}),
+    ],
+)
+def test_schema_conforming_actions_execute_without_fallback(
+    action, arguments, inventory, searched, initial_positions
+):
+    store = EventStore()
+    scenario = FoodScarcityScenario(
+        seed=101,
+        event_store=store,
+        initial_positions=initial_positions,
+    )
+    agent_a = scenario.world.agents["Agent_A"]
+    agent_a.inventory = inventory
+    if inventory:
+        scenario.world.locations[agent_a.location].food -= inventory
+    if searched:
+        agent_a.searched_locations.add(agent_a.location)
+    provider = FakeLLMProvider([structured_action_response(action, arguments)])
+    agents = {
+        agent_id: LLMAgent(agent_id, provider) if agent_id == "Agent_A" else FakeAgent(agent_id)
+        for agent_id in scenario.world.agents
+    }
+
+    SimulationEngine(scenario, agents, max_rounds=1).run()
+
+    assert not [event for event in store.events if event.event_type == "LLM_DECISION_FAILED"]
+    executed = [
+        event
+        for event in store.events
+        if event.event_type == "ACTION_EXECUTED" and event.agent_id == "Agent_A"
+    ]
+    assert executed and executed[0].payload["action"] == action
 
 
 def test_llm_provider_failure_is_recorded_and_falls_back_to_wait():

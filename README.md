@@ -46,6 +46,14 @@ OPENROUTER_API_KEY=... python -m behavioral_lab \
   --agent-mode llm --provider openrouter --preset @preset/mais-barato
 ```
 
+This configuration uses one real LLM agent (`Agent_A`) and four deterministic
+`FakeAgent` instances. The provider validates the strict response schema and
+the agent normalizes unused nullable action arguments before domain validation.
+Incomplete optional messages are safely discarded while complete messages are
+still domain-validated.
+The live path requires an OpenRouter model/provider route that supports
+Structured Outputs; the standard test suite does not make network calls.
+
 LLM integration details, including the Structured Outputs contract, retries,
 failure policy, and message visibility, are documented in
 [`docs/llm-integration.md`](docs/llm-integration.md).
