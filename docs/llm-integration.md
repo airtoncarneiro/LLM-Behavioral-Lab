@@ -82,6 +82,15 @@ replace schema validation, domain validation, or the failure policy.
 
 ## Local validation and endpoint support
 
+Use the project virtual environment for local validation:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+pytest -q
+```
+
 The standard test suite uses `FakeLLMProvider` and mock HTTP responses; it does
 not require `OPENROUTER_API_KEY` and does not prove that a selected live model
 supports Structured Outputs. Before a real experiment, select a model/provider

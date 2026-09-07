@@ -5,6 +5,19 @@ Experimental framework for reproducible multi-agent behavioral simulations.
 The implementation backlog and agent handoff checklist are maintained in
 [`docs/tasks.md`](docs/tasks.md).
 
+## Setup
+
+Create and activate a local virtual environment before installing the project:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+```
+
+The `.venv/` directory is ignored by Git. To leave the environment, run
+`deactivate`.
+
 ## Milestone 1
 
 Food Scarcity v1 without LLMs:
@@ -16,6 +29,8 @@ Food Scarcity v1 without LLMs:
 - private observations
 - immutable JSONL event log
 - deterministic replay-oriented execution
+- exact food conservation, including consumed food
+- bounded agent context with complete audit history in the event log
 
 ## Run
 
@@ -24,6 +39,16 @@ The default is deterministic and fake-only; it never calls OpenRouter:
 ```bash
 python -m behavioral_lab --seed 101 --rounds 20 --output events.jsonl
 ```
+
+Add `--verbose` to see the simulation progress, agent actions, LLM failures,
+and a summary after each round:
+
+```bash
+python -m behavioral_lab --rounds 20 --verbose
+```
+
+The default mode prints only the final summary and output path. The same option
+can be enabled in a JSON configuration with `"verbose": true`.
 
 ## Milestone 2
 
@@ -73,6 +98,11 @@ the process environment.
 LLM integration details, including the Structured Outputs contract, retries,
 failure policy, and message visibility, are documented in
 [`docs/llm-integration.md`](docs/llm-integration.md).
+
+Replay restores the recorded scenario type, food distribution, and controlled
+initial positions for the supported `food_scarcity` and `common_pool` scenarios.
+The standard tests cover these paths with fake providers; a live multi-model
+OpenRouter experiment remains an explicit external validation step.
 
 ## Experimental platform
 

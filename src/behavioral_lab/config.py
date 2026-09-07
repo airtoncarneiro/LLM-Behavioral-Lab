@@ -25,6 +25,7 @@ class SimulationConfig:
     preset: str = OpenRouterProvider.DEFAULT_PRESET
     agents: dict[str, AgentConfig] | None = None
     food_distribution: dict[str, int] | None = None
+    verbose: bool = False
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -40,7 +41,7 @@ def load_config(path: Path) -> dict[str, Any]:
 
 
 def parse_simulation_config(raw: dict[str, Any]) -> SimulationConfig:
-    allowed = {"seed", "rounds", "output", "agent_mode", "provider", "preset", "agents", "food_distribution"}
+    allowed = {"seed", "rounds", "output", "agent_mode", "provider", "preset", "agents", "food_distribution", "verbose"}
     unknown = set(raw) - allowed
     if unknown:
         raise ValueError(f"unknown config fields: {sorted(unknown)}")
@@ -94,4 +95,8 @@ def parse_simulation_config(raw: dict[str, Any]) -> SimulationConfig:
             raise ValueError("config field 'food_distribution' must be an object")
         distribution = dict(distribution)
 
-    return SimulationConfig(seed, rounds, Path(output), agent_mode, provider, preset, agents, distribution)
+    verbose = raw.get("verbose", False)
+    if not isinstance(verbose, bool):
+        raise ValueError("config field 'verbose' must be a boolean")
+
+    return SimulationConfig(seed, rounds, Path(output), agent_mode, provider, preset, agents, distribution, verbose)

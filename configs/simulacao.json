@@ -1,0 +1,39 @@
+{
+  "seed": 101,
+  "rounds": 20,
+  "output": "events.jsonl",
+  "food_distribution": {
+    "CENTRAL_ROOM": 2,
+    "KITCHEN": 5,
+    "STORAGE": 7,
+    "ROOM_A": 4,
+    "ROOM_B": 2
+  },
+  "agents": {
+    "Agent_A": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "deepseek/deepseek-v4-flash-0731"
+    },
+    "Agent_B": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "z-ai/glm-5.3-flash"
+    },
+    "Agent_C": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "qwen/qwen3.8-flash"
+    },
+    "Agent_D": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "nvidia/nemotron-3-ultra-550b-a55b:free"  
+    },
+    "Agent_E": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "minimax/minimax-m3:free"
+    }
+  }
+}
