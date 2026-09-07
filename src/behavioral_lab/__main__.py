@@ -20,6 +20,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--agent-mode", choices=("fake", "llm"))
     parser.add_argument("--provider", choices=("fake", "openrouter"))
     parser.add_argument("--preset")
+    parser.add_argument("--verbose", action="store_true", default=None)
     return parser.parse_args(argv)
 
 
@@ -31,7 +32,7 @@ def _provider(name: str, preset: str, rounds: int):
 
 def _config(args: argparse.Namespace) -> SimulationConfig:
     raw: dict[str, Any] = load_config(args.config) if args.config else {}
-    for name in ("seed", "rounds", "output", "agent_mode", "provider", "preset"):
+    for name in ("seed", "rounds", "output", "agent_mode", "provider", "preset", "verbose"):
         value = getattr(args, name)
         if value is not None:
             raw[name] = str(value) if name == "output" else value
@@ -62,18 +63,23 @@ def _configured_agents(config: SimulationConfig, provider, agent_ids: list[str])
     )
 
 
-def run(argv: list[str] | None = None) -> dict:
-    args = parse_args(argv)
-    config = _config(args)
+def _run_config(config: SimulationConfig) -> dict:
     store = EventStore(config.output)
     scenario = FoodScarcityScenario(seed=config.seed, event_store=store, distribution=config.food_distribution)
     provider = _provider(config.provider, config.preset, config.rounds)
     agents = _configured_agents(config, provider, list(scenario.world.agents))
-    return SimulationEngine(scenario, agents, max_rounds=config.rounds).run()
+    return SimulationEngine(scenario, agents, max_rounds=config.rounds, verbose=config.verbose).run()
+
+
+def run(argv: list[str] | None = None) -> dict:
+    return _run_config(_config(parse_args(argv)))
 
 
 def main(argv: list[str] | None = None) -> None:
-    print(run(argv))
+    config = _config(parse_args(argv))
+    result = _run_config(config)
+    print(f"Eventos gravados em: {config.output}")
+    print(result)
 
 
 if __name__ == "__main__":

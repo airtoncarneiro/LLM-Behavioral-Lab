@@ -68,6 +68,18 @@ def test_config_rejects_unknown_fields():
         raise AssertionError("invalid configuration was accepted")
 
 
+def test_verbose_cli_reports_progress(tmp_path, capsys):
+    output_path = tmp_path / "verbose.jsonl"
+
+    run(["--rounds", "1", "--output", str(output_path), "--verbose"])
+
+    captured = capsys.readouterr().out
+    assert "Iniciando simulação" in captured
+    assert "Rodada 1/1 iniciada" in captured
+    assert "Rodada 1/1 concluída" in captured
+    assert "Simulação concluída" in captured
+
+
 def test_missing_config_is_reported(tmp_path):
     try:
         load_config(tmp_path / "missing.json")

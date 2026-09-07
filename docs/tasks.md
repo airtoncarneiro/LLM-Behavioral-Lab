@@ -15,10 +15,13 @@ this file before starting work and update only the tasks it actually completes.
 
 - Repository: `airtoncarneiro/LLM-Behavioral-Lab`
 - Current development branch: `main`
-- Latest local validation: `49 passed` (`pytest -q`); compile and fake-only CLI smoke also pass.
+- Latest local validation: `49 passed` (`pytest -q`); `compileall`, `git diff --check`,
+  and fake-only CLI smoke also pass.
 - Live LLM smoke: one round passed with `Agent_A` on OpenRouter model
   `deepseek/deepseek-v4-flash-0731`; four other agents remained fake.
-- Readiness status: single-agent LLM path is schema-compatible; general replay and other hardening still require work.
+- Readiness status: simulation, configurable per-agent models, exact food
+  conservation, bounded context, and replay for `food_scarcity`/`common_pool`
+  are implemented and covered by automated tests.
 - Standard CI must not call OpenRouter or require `OPENROUTER_API_KEY`.
 
 ## Milestone 1 — Food Scarcity foundation
@@ -109,6 +112,14 @@ this file before starting work and update only the tasks it actually completes.
   distribution, and per-agent fake/LLM selection.
 - [x] Allow each configured LLM agent to use its own provider preset/model,
   while preserving the mixed LLM/fake configuration.
+
+### Remaining validation
+
+- [ ] Run a real multi-model OpenRouter experiment using `configs/example.json`;
+  verify the selected routes support Structured Outputs and analyze the
+  resulting behavioral metrics. This must remain outside standard CI.
+- [x] Add optional terminal progress output for rounds, agent actions, LLM
+  failures, and the final event-log path.
 
 ### External validation and delivery
 

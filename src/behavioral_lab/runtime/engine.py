@@ -14,15 +14,25 @@ class SimulationEngine:
         agents: dict[str, Agent],
         max_rounds: int = 20,
         llm_failure_fallback: Action | None = None,
+        verbose: bool = False,
     ) -> None:
         self.scenario = scenario
         self.agents = agents
         self.max_rounds = max_rounds
         self.llm_failure_fallback = llm_failure_fallback or Action(ActionType.WAIT)
+        self.verbose = verbose
 
     def run(self) -> dict:
+        if self.verbose:
+            print(
+                f"Iniciando simulação: {self.max_rounds} rodadas, "
+                f"{len(self.agents)} agentes",
+                flush=True,
+            )
         for round_number in range(1, self.max_rounds + 1):
             self.scenario.world.round_number = round_number
+            if self.verbose:
+                print(f"Rodada {round_number}/{self.max_rounds} iniciada", flush=True)
             order = self.scenario.turn_order()
             self.scenario.events.append(
                 round_number,
@@ -36,6 +46,8 @@ class SimulationEngine:
                 observation = self.scenario.observe(agent_id)
                 agent = self.agents[agent_id]
                 is_llm = bool(getattr(agent, "is_llm", False))
+                if self.verbose and is_llm:
+                    print(f"  {agent_id}: aguardando decisão LLM...", flush=True)
                 try:
                     action = agent.decide(observation)
                 except Exception as exc:
@@ -43,15 +55,29 @@ class SimulationEngine:
                         raise
                     self._record_llm_response(round_number, agent_id, agent)
                     self._record_llm_failure(round_number, agent_id, exc, None)
+                    if self.verbose:
+                        print(
+                            f"  {agent_id}: falha LLM; usando fallback "
+                            f"{self.llm_failure_fallback.type.value}",
+                            flush=True,
+                        )
                     self._execute_fallback(round_number, agent_id)
                     continue
 
                 self._record_llm_response(round_number, agent_id, agent)
+                if self.verbose:
+                    print(f"  {agent_id}: {action.type.value}", flush=True)
                 try:
                     self.scenario.execute(agent_id, action)
                 except ValueError as exc:
                     if is_llm:
                         self._record_llm_failure(round_number, agent_id, exc, action)
+                        if self.verbose:
+                            print(
+                                f"  {agent_id}: ação inválida; usando fallback "
+                                f"{self.llm_failure_fallback.type.value}",
+                                flush=True,
+                            )
                         self._execute_fallback(round_number, agent_id)
                         continue
                     self.scenario.events.append(
@@ -72,6 +98,13 @@ class SimulationEngine:
             )
             if not self.scenario.world.alive_agents:
                 break
+            if self.verbose:
+                print(
+                    f"Rodada {round_number}/{self.max_rounds} concluída — "
+                    f"vivos: {len(self.scenario.world.alive_agents)}, "
+                    f"alimentos restantes: {self.scenario.world.remaining_food}",
+                    flush=True,
+                )
 
         result = {
             "rounds_completed": self.scenario.world.round_number,
@@ -84,6 +117,13 @@ class SimulationEngine:
             "SIMULATION_FINISHED",
             result,
         )
+        if self.verbose:
+            print(
+                f"Simulação concluída — rodadas: {result['rounds_completed']}, "
+                f"sobreviventes: {len(result['survivors'])}, "
+                f"alimentos restantes: {result['remaining_food']}",
+                flush=True,
+            )
         return result
 
     def _record_llm_response(self, round_number: int, agent_id: str, agent: Agent) -> None:
