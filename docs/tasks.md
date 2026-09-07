@@ -104,6 +104,10 @@ this file before starting work and update only the tasks it actually completes.
   quantities, invalid targets, timeouts, and provider failures.
 - [x] Document Milestone 2 setup, execution modes, and safe environment
   variable handling.
+- [x] Support a JSON configuration file for simulation arguments, food
+  distribution, and per-agent fake/LLM selection.
+- [x] Allow each configured LLM agent to use its own provider preset/model,
+  while preserving the mixed LLM/fake configuration.
 
 ### External validation and delivery
 
