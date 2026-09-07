@@ -53,6 +53,7 @@ class WorldState:
     round_number: int
     agents: dict[str, AgentState]
     locations: dict[str, LocationState]
+    consumed_food: int = 0
 
     @property
     def alive_agents(self) -> list[str]:
