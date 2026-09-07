@@ -40,6 +40,15 @@ def test_llm_agent_accepts_json_fenced_response():
     assert LLMAgent("Agent_A", provider).decide(observation()).type == ActionType.WAIT
 
 
+def test_llm_agent_parses_private_message_fields():
+    provider = FakeLLMProvider(
+        ['{"action":"wait","private_message_to":"Agent_B","private_message":"keep watch"}']
+    )
+    action = LLMAgent("Agent_A", provider).decide(observation())
+    assert action.private_message_to == "Agent_B"
+    assert action.private_message == "keep watch"
+
+
 def test_llm_agent_rejects_invalid_response():
     provider = FakeLLMProvider(["not json"])
     with pytest.raises(ValueError, match="valid action JSON"):

@@ -19,8 +19,10 @@ Food Scarcity v1 without LLMs:
 
 ## Run
 
+The default is deterministic and fake-only; it never calls OpenRouter:
+
 ```bash
-python -m behavioral_lab
+python -m behavioral_lab --seed 101 --rounds 20 --output events.jsonl
 ```
 
 ## Milestone 2
@@ -30,8 +32,22 @@ The first LLM slot is `Agent_A`; the other four agents remain deterministic
 preset and reads `OPENROUTER_API_KEY` only from the process environment. Tests
 use `FakeLLMProvider` and never call OpenRouter.
 
-LLM integration details, including the planned Structured Outputs contract and
-failure policy, are documented in
+To exercise the first LLM slot with the deterministic provider:
+
+```bash
+python -m behavioral_lab --agent-mode llm --provider fake --rounds 20
+```
+
+An OpenRouter run is always explicit and reads the key only from the process
+environment:
+
+```bash
+OPENROUTER_API_KEY=... python -m behavioral_lab \
+  --agent-mode llm --provider openrouter --preset @preset/mais-barato
+```
+
+LLM integration details, including the Structured Outputs contract, retries,
+failure policy, and message visibility, are documented in
 [`docs/llm-integration.md`](docs/llm-integration.md).
 
 ## Test

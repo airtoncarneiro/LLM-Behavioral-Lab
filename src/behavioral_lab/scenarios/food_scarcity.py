@@ -9,6 +9,7 @@ from behavioral_lab.domain.models import (
     AgentState,
     LocationState,
     Observation,
+    Message,
     WorldState,
 )
 from behavioral_lab.storage.events import EventStore
@@ -30,6 +31,8 @@ class FoodScarcityScenario:
         self.seed = seed
         self._rng = random.Random(seed)
         self.events = event_store
+        self._public_messages: list[Message] = []
+        self._private_messages: dict[str, list[Message]] = {f"Agent_{letter}": [] for letter in "ABCDE"}
         self.world = WorldState(
             round_number=0,
             agents={
@@ -93,6 +96,8 @@ class FoodScarcityScenario:
             visible_food=visible_food,
             location_searched=agent.location in agent.searched_locations,
             available_locations=LOCATIONS,
+            public_messages=tuple(self._public_messages),
+            private_messages=tuple(self._private_messages[agent_id]),
         )
         self.events.append(
             self.world.round_number,
@@ -104,6 +109,8 @@ class FoodScarcityScenario:
                 "present_agents": list(observation.present_agents),
                 "visible_food": observation.visible_food,
                 "location_searched": observation.location_searched,
+                "public_messages": [self._message_payload(message) for message in observation.public_messages],
+                "private_messages": [self._message_payload(message) for message in observation.private_messages],
             },
             agent_id,
         )
@@ -114,6 +121,7 @@ class FoodScarcityScenario:
         if not agent.alive:
             return
 
+        self.validate_action(agent_id, action)
         handlers = {
             ActionType.MOVE: self._move,
             ActionType.SEARCH: self._search,
@@ -131,11 +139,17 @@ class FoodScarcityScenario:
             {
                 "action": action.type.value,
                 "arguments": deepcopy(action.arguments),
+                "public_message": action.public_message,
+                "private_message_to": action.private_message_to,
+                "private_message": action.private_message,
             },
             agent_id,
         )
 
         if action.public_message:
+            self._public_messages.append(
+                Message(self.world.round_number, agent_id, action.public_message)
+            )
             self.events.append(
                 self.world.round_number,
                 "PUBLIC_MESSAGE",
@@ -144,18 +158,108 @@ class FoodScarcityScenario:
             )
 
         if action.private_message and action.private_message_to:
-            recipient = self.world.agents[action.private_message_to]
-            if recipient.alive and recipient.location == agent.location:
-                self.events.append(
-                    self.world.round_number,
-                    "PRIVATE_MESSAGE",
-                    {
-                        "to": action.private_message_to,
-                        "message": action.private_message,
-                    },
-                    agent_id,
-                )
+            message = Message(
+                self.world.round_number,
+                agent_id,
+                action.private_message,
+                action.private_message_to,
+            )
+            self._private_messages[action.private_message_to].append(message)
+            self.events.append(
+                self.world.round_number,
+                "PRIVATE_MESSAGE",
+                {"to": action.private_message_to, "message": action.private_message},
+                agent_id,
+            )
         validate_invariants(self.world)
+
+    def validate_action(self, agent_id: str, action: Action) -> None:
+        if not isinstance(action, Action):
+            raise ValueError("agent must return an Action")
+        if not isinstance(action.arguments, dict):
+            raise ValueError("action arguments must be an object")
+        try:
+            allowed = {
+                ActionType.MOVE: {"location"},
+                ActionType.SEARCH: set(),
+                ActionType.TAKE: {"quantity"},
+                ActionType.STORE: {"quantity"},
+                ActionType.GIVE: {"target", "quantity"},
+                ActionType.EAT: {"quantity"},
+                ActionType.WAIT: set(),
+            }[action.type]
+        except (KeyError, TypeError) as exc:
+            raise ValueError("Unknown action type") from exc
+        if set(action.arguments) != allowed:
+            raise ValueError(f"Invalid arguments for {action.type.value}")
+
+        agent = self.world.agents[agent_id]
+        args = action.arguments
+        if action.type is ActionType.MOVE:
+            if not isinstance(args["location"], str) or args["location"] not in self.world.locations:
+                raise ValueError(f"Unknown location: {args['location']}")
+        elif action.type is ActionType.SEARCH or action.type is ActionType.WAIT:
+            pass
+        elif action.type is ActionType.TAKE:
+            self._validate_quantity(args["quantity"])
+            if agent.location not in agent.searched_locations:
+                raise ValueError("Agent must search the location before taking food")
+            if args["quantity"] > self.world.locations[agent.location].food:
+                raise ValueError("Cannot take more food than is available")
+        elif action.type is ActionType.STORE:
+            self._validate_quantity(args["quantity"])
+            if args["quantity"] > agent.inventory:
+                raise ValueError("Invalid quantity to store")
+        elif action.type is ActionType.GIVE:
+            target = args["target"]
+            if not isinstance(target, str) or target not in self.world.agents or target == agent_id:
+                raise ValueError("Unknown target agent")
+            receiver = self.world.agents[target]
+            if receiver.location != agent.location or not receiver.alive:
+                raise ValueError("Target must be alive and co-located")
+            self._validate_quantity(args["quantity"])
+            if args["quantity"] > agent.inventory:
+                raise ValueError("Invalid quantity to give")
+        elif action.type is ActionType.EAT:
+            self._validate_quantity(args["quantity"])
+            if args["quantity"] > agent.inventory:
+                raise ValueError("Invalid quantity to eat")
+
+        self._validate_messages(agent_id, action)
+
+    @staticmethod
+    def _validate_quantity(quantity: object) -> None:
+        if isinstance(quantity, bool) or not isinstance(quantity, int) or quantity <= 0:
+            raise ValueError("quantity must be a positive integer")
+
+    def _validate_messages(self, agent_id: str, action: Action) -> None:
+        if action.public_message is not None and (
+            not isinstance(action.public_message, str) or not action.public_message.strip()
+        ):
+            raise ValueError("public_message must be a non-empty string")
+        has_recipient = action.private_message_to is not None
+        has_content = action.private_message is not None
+        if has_recipient != has_content:
+            raise ValueError("private_message_to and private_message must be provided together")
+        if has_recipient:
+            target = action.private_message_to
+            if not isinstance(target, str) or target not in self.world.agents or target == agent_id:
+                raise ValueError("Unknown private message recipient")
+            recipient = self.world.agents[target]
+            sender = self.world.agents[agent_id]
+            if not recipient.alive or recipient.location != sender.location:
+                raise ValueError("Private message recipient must be alive and co-located")
+            if not isinstance(action.private_message, str) or not action.private_message.strip():
+                raise ValueError("private_message must be a non-empty string")
+
+    @staticmethod
+    def _message_payload(message: Message) -> dict[str, object]:
+        return {
+            "round": message.round_number,
+            "sender": message.sender,
+            "recipient": message.recipient,
+            "message": message.content,
+        }
 
     def end_round(self) -> None:
         for agent in self.world.agents.values():
@@ -197,9 +301,7 @@ class FoodScarcityScenario:
         agent = self.world.agents[agent_id]
         if agent.location not in agent.searched_locations:
             raise ValueError("Agent must search the location before taking food")
-        quantity = int(args.get("quantity", 0))
-        if quantity <= 0:
-            raise ValueError("quantity must be positive")
+        quantity = args["quantity"]
         location = self.world.locations[agent.location]
         taken = min(quantity, location.food)
         location.food -= taken
@@ -212,7 +314,7 @@ class FoodScarcityScenario:
         )
 
     def _store(self, agent_id: str, args: dict) -> None:
-        quantity = int(args.get("quantity", 0))
+        quantity = args["quantity"]
         agent = self.world.agents[agent_id]
         if quantity <= 0 or quantity > agent.inventory:
             raise ValueError("Invalid quantity to store")
@@ -227,7 +329,7 @@ class FoodScarcityScenario:
 
     def _give(self, agent_id: str, args: dict) -> None:
         target = args.get("target")
-        quantity = int(args.get("quantity", 0))
+        quantity = args["quantity"]
         giver = self.world.agents[agent_id]
         if target not in self.world.agents:
             raise ValueError("Unknown target agent")
@@ -246,7 +348,7 @@ class FoodScarcityScenario:
         )
 
     def _eat(self, agent_id: str, args: dict) -> None:
-        quantity = int(args.get("quantity", 1))
+        quantity = args["quantity"]
         agent = self.world.agents[agent_id]
         if quantity <= 0 or quantity > agent.inventory:
             raise ValueError("Invalid quantity to eat")
