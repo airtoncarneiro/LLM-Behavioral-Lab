@@ -298,6 +298,33 @@ def test_messages_are_visible_publicly_but_private_messages_are_scoped():
     assert observation_c.private_messages == ()
 
 
+def test_message_history_is_bounded_for_agent_context():
+    store = EventStore()
+    scenario = FoodScarcityScenario(seed=101, event_store=store, max_message_history=2)
+    for index in range(4):
+        scenario.execute("Agent_A", Action(ActionType.WAIT, public_message=f"message-{index}"))
+    observation_b = scenario.observe("Agent_B")
+    assert [message.content for message in observation_b.public_messages] == [
+        "message-2",
+        "message-3",
+    ]
+
+    for index in range(4):
+        scenario.execute(
+            "Agent_A",
+            Action(
+                ActionType.WAIT,
+                private_message_to="Agent_B",
+                private_message=f"private-{index}",
+            ),
+        )
+    observation_b = scenario.observe("Agent_B")
+    assert [message.content for message in observation_b.private_messages] == [
+        "private-2",
+        "private-3",
+    ]
+
+
 def test_cli_defaults_to_fake_only_and_accepts_configuration(tmp_path, monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     output = tmp_path / "events.jsonl"

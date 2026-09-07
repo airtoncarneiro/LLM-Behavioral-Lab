@@ -58,8 +58,12 @@ fallback, allowing the remaining agents and rounds to continue. Error payloads
 are bounded and redact credential-like values.
 
 Public messages are included in observations after they are emitted. Private
-messages are stored only for the named, alive, co-located recipient. Message
-history is included in the LLM prompt and in the agent's bounded memory.
+messages are stored only for the named, alive, co-located recipient. The
+scenario keeps a bounded context window for both public and private messages
+(100 messages by default), while the event log retains the complete history for
+audit and replay. The LLM agent also keeps only its most recent five decision
+records by default; `LLMAgent(max_memory=...)` can adjust that research
+context.
 
 OpenRouter support is endpoint-specific. A model name alone does not guarantee
 Structured Outputs support, so the selected model/provider combination must be

@@ -35,6 +35,20 @@ def test_llm_agent_uses_structured_fake_response_and_memory():
     assert agent.last_response.model == "fake-model"
 
 
+def test_llm_agent_memory_is_bounded():
+    provider = FakeLLMProvider(['{"action":"wait"}'] * 4)
+    agent = LLMAgent("Agent_A", provider, max_memory=2)
+    for round_number in range(1, 5):
+        current = observation()
+        current = current.__class__(round_number=round_number, **{
+            field: getattr(current, field)
+            for field in current.__dataclass_fields__
+            if field != "round_number"
+        })
+        agent.decide(current)
+    assert len(agent.memory) == 2
+
+
 def test_llm_agent_accepts_json_fenced_response():
     provider = FakeLLMProvider(["```json\n{\"action\":\"wait\"}\n```"])
     assert LLMAgent("Agent_A", provider).decide(observation()).type == ActionType.WAIT

@@ -36,7 +36,10 @@ class FoodScarcityScenario:
         *,
         initial_positions: dict[str, str] | None = None,
         distribution: dict[str, int] | None = None,
+        max_message_history: int = 100,
     ) -> None:
+        if max_message_history < 1:
+            raise ValueError("max_message_history must be positive")
         self.seed = seed
         self._rng = random.Random(seed)
         self.events = event_store
@@ -49,6 +52,12 @@ class FoodScarcityScenario:
         ):
             raise ValueError("distribution must contain non-negative food for every location")
         self.total_food = sum(selected_distribution.values())
+        self.initial_distribution = dict(selected_distribution)
+        self.initial_positions = {
+            f"Agent_{letter}": "CENTRAL_ROOM" for letter in "ABCDE"
+        }
+        self.initial_positions.update(initial_positions or {})
+        self.max_message_history = max_message_history
         self._public_messages: list[Message] = []
         self._private_messages: dict[str, list[Message]] = {f"Agent_{letter}": [] for letter in "ABCDE"}
         self.world = WorldState(
@@ -69,6 +78,7 @@ class FoodScarcityScenario:
                 raise ValueError("initial_positions contains an unknown agent or location")
             for agent_id, location in initial_positions.items():
                 self.world.agents[agent_id].location = location
+        validate_invariants(self.world, total_food=self.total_food)
         self.events.append(0, "SIMULATION_INITIALIZED", self.snapshot())
 
     def snapshot(self) -> dict:
@@ -76,6 +86,9 @@ class FoodScarcityScenario:
             "scenario": self.scenario_name,
             "seed": self.seed,
             "round": self.world.round_number,
+            "initial_positions": dict(self.initial_positions),
+            "food_distribution": dict(self.initial_distribution),
+            "consumed_food": self.world.consumed_food,
             "agents": {
                 agent_id: {
                     "location": agent.location,
@@ -176,6 +189,7 @@ class FoodScarcityScenario:
             self._public_messages.append(
                 Message(self.world.round_number, agent_id, action.public_message)
             )
+            self._public_messages = self._public_messages[-self.max_message_history :]
             self.events.append(
                 self.world.round_number,
                 "PUBLIC_MESSAGE",
@@ -191,6 +205,9 @@ class FoodScarcityScenario:
                 action.private_message_to,
             )
             self._private_messages[action.private_message_to].append(message)
+            self._private_messages[action.private_message_to] = self._private_messages[
+                action.private_message_to
+            ][-self.max_message_history :]
             self.events.append(
                 self.world.round_number,
                 "PRIVATE_MESSAGE",
@@ -379,6 +396,7 @@ class FoodScarcityScenario:
         if quantity <= 0 or quantity > agent.inventory:
             raise ValueError("Invalid quantity to eat")
         agent.inventory -= quantity
+        self.world.consumed_food += quantity
         agent.hunger = max(0, agent.hunger - 3 * quantity)
         self.events.append(
             self.world.round_number,

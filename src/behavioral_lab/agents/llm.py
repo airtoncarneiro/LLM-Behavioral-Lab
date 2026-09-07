@@ -31,10 +31,14 @@ class LLMAgent:
         provider: LLMProvider,
         *,
         system_prompt: str = SYSTEM_PROMPT,
+        max_memory: int = 5,
     ) -> None:
+        if max_memory < 1:
+            raise ValueError("max_memory must be positive")
         self.agent_id = agent_id
         self.provider = provider
         self.system_prompt = system_prompt
+        self.max_memory = max_memory
         self.memory: list[dict[str, Any]] = []
         self.last_response: ProviderResponse | None = None
 
@@ -57,6 +61,7 @@ class LLMAgent:
                 "action": action.type.value,
             }
         )
+        self.memory = self.memory[-self.max_memory :]
         return action
 
     def _observation_prompt(self, observation: Observation) -> str:

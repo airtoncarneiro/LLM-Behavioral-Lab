@@ -4,6 +4,7 @@ from behavioral_lab.runtime.engine import SimulationEngine
 from behavioral_lab.scenarios.food_scarcity import FoodScarcityScenario
 from behavioral_lab.storage.events import EventStore
 from behavioral_lab.runtime.replay import comparable_events, replay_jsonl
+from behavioral_lab.scenarios.common_pool import CommonPoolScenario
 
 
 def build(seed: int = 101):
@@ -38,10 +39,21 @@ def test_eating_reduces_hunger_by_three():
     _, scenario, _ = build()
     agent = scenario.world.agents["Agent_A"]
     agent.inventory = 1
+    scenario.world.locations[agent.location].food -= 1
     agent.hunger = 7
     scenario.execute("Agent_A", Action(ActionType.EAT, {"quantity": 1}))
     assert agent.hunger == 4
     assert agent.inventory == 0
+    assert scenario.world.consumed_food == 1
+
+
+def test_food_conservation_includes_consumed_food():
+    _, scenario, _ = build()
+    agent = scenario.world.agents["Agent_A"]
+    agent.inventory = 1
+    scenario.world.locations[agent.location].food -= 1
+    scenario.execute("Agent_A", Action(ActionType.EAT, {"quantity": 1}))
+    assert scenario.world.remaining_food + scenario.world.consumed_food == scenario.total_food
 
 
 def test_agent_dies_at_hunger_10():
@@ -88,3 +100,45 @@ def test_jsonl_replay_matches_state_changing_events_and_final_state(tmp_path):
     )
     assert replay_snapshot == original_snapshot
     assert comparable_events(store.events) == comparable_events(replay_store.events)
+
+
+def test_jsonl_replay_restores_custom_distribution_and_positions(tmp_path):
+    path = tmp_path / "custom.jsonl"
+    distribution = {
+        "CENTRAL_ROOM": 1,
+        "KITCHEN": 2,
+        "STORAGE": 3,
+        "ROOM_A": 4,
+        "ROOM_B": 5,
+    }
+    store = EventStore(path)
+    scenario = FoodScarcityScenario(
+        seed=7,
+        event_store=store,
+        initial_positions={"Agent_A": "KITCHEN", "Agent_B": "ROOM_B"},
+        distribution=distribution,
+    )
+    agents = {agent_id: FakeAgent(agent_id) for agent_id in scenario.world.agents}
+    SimulationEngine(scenario, agents, max_rounds=1).run()
+
+    _, replay_snapshot = replay_jsonl(path)
+    assert replay_snapshot == next(
+        event.payload for event in reversed(store.events) if event.event_type == "ROUND_ENDED"
+    )
+
+
+def test_jsonl_replay_restores_common_pool_scenario(tmp_path):
+    path = tmp_path / "common-pool.jsonl"
+    store = EventStore(path)
+    scenario = CommonPoolScenario(
+        seed=11,
+        event_store=store,
+        initial_positions={"Agent_A": "KITCHEN", "Agent_B": "KITCHEN"},
+    )
+    agents = {agent_id: FakeAgent(agent_id) for agent_id in scenario.world.agents}
+    SimulationEngine(scenario, agents, max_rounds=1).run()
+
+    _, replay_snapshot = replay_jsonl(path)
+    assert replay_snapshot == next(
+        event.payload for event in reversed(store.events) if event.event_type == "ROUND_ENDED"
+    )

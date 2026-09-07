@@ -15,7 +15,7 @@ this file before starting work and update only the tasks it actually completes.
 
 - Repository: `airtoncarneiro/LLM-Behavioral-Lab`
 - Current development branch: `main`
-- Latest local validation: `40 passed` (`pytest -q`); compile and fake-only CLI smoke also pass.
+- Latest local validation: `49 passed` (`pytest -q`); compile and fake-only CLI smoke also pass.
 - Live LLM smoke: one round passed with `Agent_A` on OpenRouter model
   `deepseek/deepseek-v4-flash-0731`; four other agents remained fake.
 - Readiness status: single-agent LLM path is schema-compatible; general replay and other hardening still require work.
@@ -43,8 +43,9 @@ this file before starting work and update only the tasks it actually completes.
 - [x] Implement a JSONL reader.
 - [x] Implement replay that reapplies recorded actions without calling an LLM.
 - [x] Verify replayed events and final state against the original run.
-- [ ] Strengthen invariant checks to enforce exact food conservation, in
-  addition to inventory, valid locations, and living/dead agent checks.
+- [x] Strengthen invariant checks to enforce exact food conservation, including
+  food consumed by agents, in addition to inventory, valid locations, and
+  living/dead agent checks.
 
 ## Milestone 2 — First LLM agent
 
@@ -133,9 +134,9 @@ this file before starting work and update only the tasks it actually completes.
 
 ### Readiness hardening
 
-- [ ] Make replay restore the recorded scenario type, food distribution, and
+- [x] Make replay restore the recorded scenario type, food distribution, and
   controlled initial positions; cover `common_pool` and custom configurations.
-- [ ] Bound accumulated public/private message history and LLM prompt memory
+- [x] Bound accumulated public/private message history and LLM prompt memory
   without losing the configured research context; add a long-run test.
 
 ## Agent handoff checklist
