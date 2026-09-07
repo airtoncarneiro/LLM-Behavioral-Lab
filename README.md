@@ -54,6 +54,22 @@ still domain-validated.
 The live path requires an OpenRouter model/provider route that supports
 Structured Outputs; the standard test suite does not make network calls.
 
+### Configuration file
+
+The main simulation also accepts a JSON configuration file. It can assign a
+different OpenRouter preset to each LLM agent and keep the remaining agents
+fake. The example is available at [`configs/example.json`](configs/example.json):
+
+```bash
+OPENROUTER_API_KEY=... python -m behavioral_lab \
+  --config configs/example.json
+```
+
+The explicit CLI options `--seed`, `--rounds`, `--output`, `--agent-mode`,
+`--provider`, and `--preset` override values from the file. API keys are never
+read from the configuration file; OpenRouter uses `OPENROUTER_API_KEY` from
+the process environment.
+
 LLM integration details, including the Structured Outputs contract, retries,
 failure policy, and message visibility, are documented in
 [`docs/llm-integration.md`](docs/llm-integration.md).

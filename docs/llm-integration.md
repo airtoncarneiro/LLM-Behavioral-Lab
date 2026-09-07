@@ -86,4 +86,15 @@ smoke test with the key supplied in the process environment. Unsupported
 endpoints are treated as decision failures rather than silently changing the
 experiment protocol.
 
+## Per-agent models and configuration files
+
+The main CLI accepts `--config path/to/file.json`. Its `agents` object may
+declare a separate `preset` for every LLM agent. Agents declared with
+`"type": "fake"` remain deterministic and do not make network calls. See
+[`configs/example.json`](../configs/example.json) for a mixed configuration.
+
+Command-line values override the corresponding top-level file values. Secrets
+must remain in the process environment; the OpenRouter API key is read from
+`OPENROUTER_API_KEY`, never from JSON.
+
 Reference: [OpenRouter Structured Outputs documentation](https://openrouter.ai/docs/guides/features/structured-outputs).

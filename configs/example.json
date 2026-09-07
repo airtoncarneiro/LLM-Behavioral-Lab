@@ -1,0 +1,27 @@
+{
+  "seed": 101,
+  "rounds": 20,
+  "output": "events.jsonl",
+  "food_distribution": {
+    "CENTRAL_ROOM": 2,
+    "KITCHEN": 5,
+    "STORAGE": 7,
+    "ROOM_A": 4,
+    "ROOM_B": 2
+  },
+  "agents": {
+    "Agent_A": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "deepseek/deepseek-v4-flash-0731"
+    },
+    "Agent_B": {
+      "type": "llm",
+      "provider": "openrouter",
+      "preset": "openai/gpt-4o-mini"
+    },
+    "Agent_C": {"type": "fake"},
+    "Agent_D": {"type": "fake"},
+    "Agent_E": {"type": "fake"}
+  }
+}
