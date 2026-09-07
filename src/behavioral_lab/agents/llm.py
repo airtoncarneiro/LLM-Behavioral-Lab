@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Any, Protocol
 
-from behavioral_lab.domain.models import Action, ActionType, Observation
+from behavioral_lab.domain.models import Action, ActionType, Message, Observation
 from behavioral_lab.providers.openrouter import ProviderResponse
 
 
@@ -23,6 +23,8 @@ class LLMProvider(Protocol):
 class LLMAgent:
     """Agent that turns a provider's structured JSON decision into an Action."""
 
+    is_llm = True
+
     def __init__(
         self,
         agent_id: str,
@@ -37,6 +39,7 @@ class LLMAgent:
         self.last_response: ProviderResponse | None = None
 
     def decide(self, observation: Observation) -> Action:
+        self.last_response = None
         user_prompt = self._observation_prompt(observation)
         response = self.provider.complete(
             [
@@ -46,7 +49,14 @@ class LLMAgent:
         )
         self.last_response = response
         action = self._parse_action(response.content)
-        self.memory.append({"observation": user_prompt, "action": action.type.value})
+        self.memory.append(
+            {
+                "observation": user_prompt,
+                "public_messages": [self._message_dict(message) for message in observation.public_messages],
+                "private_messages": [self._message_dict(message) for message in observation.private_messages],
+                "action": action.type.value,
+            }
+        )
         return action
 
     def _observation_prompt(self, observation: Observation) -> str:
@@ -61,11 +71,15 @@ class LLMAgent:
                 "visible_food": observation.visible_food,
                 "location_searched": observation.location_searched,
                 "available_locations": list(observation.available_locations),
+                "public_messages": [self._message_dict(message) for message in observation.public_messages],
+                "private_messages": [self._message_dict(message) for message in observation.private_messages],
                 "memory": self.memory[-5:],
                 "output_schema": {
                     "action": "move|search|take|store|give|eat|wait",
                     "arguments": "object",
                     "public_message": "optional string",
+                    "private_message_to": "optional agent id",
+                    "private_message": "optional string",
                 },
             },
             sort_keys=True,
@@ -78,6 +92,17 @@ class LLMAgent:
             candidate = candidate.removeprefix("```").removeprefix("json").removesuffix("```").strip()
         try:
             data = json.loads(candidate)
+            if not isinstance(data, dict):
+                raise ValueError("LLM response must be a JSON object")
+            unknown_fields = set(data) - {
+                "action",
+                "arguments",
+                "public_message",
+                "private_message_to",
+                "private_message",
+            }
+            if unknown_fields:
+                raise ValueError("LLM action contains unknown fields")
             action_type = ActionType(data["action"])
             arguments = data.get("arguments", {})
         except (json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
@@ -87,4 +112,27 @@ class LLMAgent:
         public_message = data.get("public_message")
         if public_message is not None and not isinstance(public_message, str):
             raise ValueError("public_message must be a string")
-        return Action(action_type, arguments, public_message=public_message)
+        private_message_to = data.get("private_message_to")
+        private_message = data.get("private_message")
+        if private_message_to is not None and not isinstance(private_message_to, str):
+            raise ValueError("private_message_to must be a string")
+        if private_message is not None and not isinstance(private_message, str):
+            raise ValueError("private_message must be a string")
+        if (private_message_to is None) != (private_message is None):
+            raise ValueError("private_message_to and private_message must be provided together")
+        return Action(
+            action_type,
+            arguments,
+            public_message=public_message,
+            private_message_to=private_message_to,
+            private_message=private_message,
+        )
+
+    @staticmethod
+    def _message_dict(message: Message) -> dict[str, Any]:
+        return {
+            "round": message.round_number,
+            "sender": message.sender,
+            "recipient": message.recipient,
+            "content": message.content,
+        }

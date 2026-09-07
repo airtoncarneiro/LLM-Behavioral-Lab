@@ -15,7 +15,7 @@ this file before starting work and update only the tasks it actually completes.
 
 - Repository: `airtoncarneiro/LLM-Behavioral-Lab`
 - Current development branch: `feat/milestone-2-llm-agent`
-- Latest local validation: `11 passed`
+- Latest local validation: `26 passed`
 - Standard CI must not call OpenRouter or require `OPENROUTER_API_KEY`.
 
 ## Milestone 1 — Food Scarcity foundation
@@ -60,42 +60,42 @@ this file before starting work and update only the tasks it actually completes.
 
 ### Pending implementation — priority P0
 
-- [ ] Handle provider failures and invalid LLM responses without aborting the
+- [x] Handle provider failures and invalid LLM responses without aborting the
   entire simulation.
-- [ ] Add bounded timeout and retry policy.
-- [ ] Record an explicit `LLM_DECISION_FAILED` event with a safe error summary.
-- [ ] Define and implement the policy for invalid LLM actions, including a
+- [x] Add bounded timeout and retry policy.
+- [x] Record an explicit `LLM_DECISION_FAILED` event with a safe error summary.
+- [x] Define and implement the policy for invalid LLM actions, including a
   configurable fallback such as `WAIT`.
-- [ ] Add strict per-action argument validation before execution.
-- [ ] Request and validate structured output at the provider boundary.
-- [ ] Use OpenRouter Structured Outputs with `response_format.type=json_schema`,
+- [x] Add strict per-action argument validation before execution.
+- [x] Request and validate structured output at the provider boundary.
+- [x] Use OpenRouter Structured Outputs with `response_format.type=json_schema`,
   `strict=true`, required fields, `additionalProperties=false`, descriptive
   properties, and provider routing with `require_parameters=true`.
-- [ ] Document the Structured Outputs contract, endpoint-specific support,
+- [x] Document the Structured Outputs contract, endpoint-specific support,
   local validation, failure policy, and safe fallback.
-- [ ] Add mock HTTP tests for OpenRouter request and response handling.
+- [x] Add mock HTTP tests for OpenRouter request and response handling.
 
 ### Pending implementation — priority P1
 
-- [ ] Deliver public messages to agents in later observations.
-- [ ] Deliver private messages only to the intended recipient.
-- [ ] Include communication history in the agent memory model.
-- [ ] Support `private_message` in the LLM action schema.
-- [ ] Replace the engine's concrete `FakeAgent | LLMAgent` type with a common
+- [x] Deliver public messages to agents in later observations.
+- [x] Deliver private messages only to the intended recipient.
+- [x] Include communication history in the agent memory model.
+- [x] Support `private_message` in the LLM action schema.
+- [x] Replace the engine's concrete `FakeAgent | LLMAgent` type with a common
   agent protocol.
-- [ ] Extract reusable agent composition/configuration from `__main__.py`.
-- [ ] Add a configurable CLI for seed, rounds, output path, agent mode,
+- [x] Extract reusable agent composition/configuration from `__main__.py`.
+- [x] Add a configurable CLI for seed, rounds, output path, agent mode,
   provider, and preset.
-- [ ] Make fake-only execution the default so a simple local run never calls
+- [x] Make fake-only execution the default so a simple local run never calls
   OpenRouter implicitly.
-- [ ] Expand tests for MOVE, STORE, GIVE, messages, dead agents, invalid
+- [x] Expand tests for MOVE, STORE, GIVE, messages, dead agents, invalid
   quantities, invalid targets, timeouts, and provider failures.
-- [ ] Document Milestone 2 setup, execution modes, and safe environment
+- [x] Document Milestone 2 setup, execution modes, and safe environment
   variable handling.
 
 ### External validation and delivery
 
-- [ ] Run an optional real OpenRouter smoke test only when the environment
+- [x] Run an optional real OpenRouter smoke test only when the environment
   provides `OPENROUTER_API_KEY`; never run it in standard CI.
 - [ ] Open the Milestone 2 pull request.
 - [ ] Confirm the GitHub Actions run for the Milestone 2 pull request passes.

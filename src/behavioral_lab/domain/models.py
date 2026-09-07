@@ -16,6 +16,14 @@ class ActionType(StrEnum):
 
 
 @dataclass(frozen=True)
+class Message:
+    round_number: int
+    sender: str
+    content: str
+    recipient: str | None = None
+
+
+@dataclass(frozen=True)
 class Action:
     type: ActionType
     arguments: dict[str, Any] = field(default_factory=dict)
@@ -66,3 +74,5 @@ class Observation:
     visible_food: int | None
     location_searched: bool
     available_locations: tuple[str, ...]
+    public_messages: tuple[Message, ...] = ()
+    private_messages: tuple[Message, ...] = ()

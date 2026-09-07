@@ -18,7 +18,16 @@ def replay_jsonl(path: Path) -> tuple[EventStore, dict]:
     for event in original.events:
         if event.event_type == "ACTION_EXECUTED" and event.agent_id:
             scenario.world.round_number = event.round_number
-            scenario.execute(event.agent_id, Action(ActionType(event.payload["action"]), event.payload["arguments"]))
+            scenario.execute(
+                event.agent_id,
+                Action(
+                    ActionType(event.payload["action"]),
+                    event.payload["arguments"],
+                    public_message=event.payload.get("public_message"),
+                    private_message_to=event.payload.get("private_message_to"),
+                    private_message=event.payload.get("private_message"),
+                ),
+            )
         elif event.event_type == "ROUND_ENDED":
             scenario.world.round_number = event.round_number
             scenario.end_round()
