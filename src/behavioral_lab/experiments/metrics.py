@@ -16,6 +16,9 @@ def summarize_events(
     per_agent: dict[str, dict[str, Any]] = {
         agent_id: {
             "actions": 0,
+            "llm_decisions": 0,
+            "llm_failures": 0,
+            "fallbacks": 0,
             "consumed": 0,
             "given": 0,
             "received": 0,
@@ -36,6 +39,13 @@ def summarize_events(
             continue
         if event.event_type == "ACTION_EXECUTED":
             per_agent[agent_id]["actions"] += 1
+        elif event.event_type == "LLM_RESPONSE_RECEIVED":
+            per_agent[agent_id]["llm_decisions"] += 1
+        elif event.event_type == "LLM_DECISION_FAILED":
+            per_agent[agent_id]["llm_failures"] += 1
+            per_agent[agent_id]["fallbacks"] += 1
+        elif event.event_type == "FALLBACK_ACTION_FAILED":
+            per_agent[agent_id]["fallbacks"] += 1
         elif event.event_type == "FOOD_EATEN":
             quantity = int(payload.get("quantity", 0))
             total_consumed += quantity
@@ -103,5 +113,16 @@ def summarize_events(
             "total_messages": public_messages + private_messages,
         },
         "resource_distribution": resource_distribution,
+        "llm_reliability": {
+            "decisions": sum(value["llm_decisions"] for value in per_agent.values()),
+            "failures": sum(value["llm_failures"] for value in per_agent.values()),
+            "fallbacks": sum(value["fallbacks"] for value in per_agent.values()),
+            "failure_rate": (
+                sum(value["llm_failures"] for value in per_agent.values())
+                / sum(value["llm_decisions"] for value in per_agent.values())
+                if sum(value["llm_decisions"] for value in per_agent.values())
+                else 0.0
+            ),
+        },
     }
     return per_agent, metrics

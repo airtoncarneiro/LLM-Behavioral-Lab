@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ class Event:
     agent_id: str | None
     event_type: str
     payload: dict[str, Any]
+    timestamp: str = ""
 
 
 class EventStore:
@@ -43,6 +45,7 @@ class EventStore:
                         agent_id=raw.get("agent_id"),
                         event_type=str(raw["event_type"]),
                         payload=raw["payload"],
+                        timestamp=str(raw.get("timestamp", "")),
                     )
                 except (KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
                     raise ValueError(f"Invalid event at JSONL line {line_number}") from exc
@@ -62,6 +65,7 @@ class EventStore:
             agent_id=agent_id,
             event_type=event_type,
             payload=payload,
+            timestamp=datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z"),
         )
         self._events.append(event)
         if self._path:

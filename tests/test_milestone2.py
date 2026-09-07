@@ -231,6 +231,23 @@ def test_invalid_llm_action_is_recorded_without_aborting_simulation():
     assert failure.payload["fallback_action"] == "wait"
 
 
+def test_invalid_private_message_does_not_replace_valid_llm_action():
+    store, scenario, agents = scenario_with_llm(
+        ['{"action":"search","private_message_to":"Agent_Z","private_message":"hello"}']
+    )
+
+    SimulationEngine(scenario, agents, max_rounds=1).run()
+
+    assert not [event for event in store.events if event.event_type == "LLM_DECISION_FAILED"]
+    executed = [
+        event
+        for event in store.events
+        if event.event_type == "ACTION_EXECUTED" and event.agent_id == "Agent_A"
+    ]
+    assert executed[0].payload["action"] == "search"
+    assert executed[0].payload["private_message_to"] is None
+
+
 def test_invalid_domain_action_does_not_mutate_state():
     store = EventStore()
     scenario = FoodScarcityScenario(seed=101, event_store=store)

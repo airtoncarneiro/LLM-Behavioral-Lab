@@ -17,9 +17,10 @@ def test_runner_repeats_seeds_and_reports_metrics(tmp_path):
         "hunger",
         "consumption",
         "cooperation",
-        "disclosure",
-        "resource_distribution",
-    }
+            "disclosure",
+            "resource_distribution",
+            "llm_reliability",
+        }
     assert all(summary.event_path and summary.event_path.exists() for summary in report.summaries)
 
 
